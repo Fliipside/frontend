@@ -159,7 +159,7 @@ function ScopeSelect({
   );
 }
 function Content() {
-  const { s, modal, open, close, update, notify } = useStore();
+  const { s, modal, open, close, update, notify, user, signOut } = useStore();
   const id = modal?.id;
   switch (modal?.type) {
     case "customer":
@@ -412,9 +412,11 @@ function Content() {
       return (
         <>
           <div className="user-profile">
-            <Avatar name="이지원" />
-            <h3>이지원 매니저</h3>
-            <p>Flipside · 영업팀</p>
+            <Avatar name={user!.name} />
+            <h3>{user!.name}</h3>
+            <p>
+              {user!.company} · {user!.email}
+            </p>
           </div>
           <div className="brief-block">
             <h3>함께 기억하는 고객 관계</h3>
@@ -427,6 +429,11 @@ function Content() {
             <ShieldCheck size={18} />
             예시 데이터로 구성된 데모입니다. 실제 계정 및 외부 시스템과 연결되어
             있지 않습니다.
+          </div>
+          <div className="dialog-footer">
+            <button className="btn" onClick={signOut}>
+              로그아웃
+            </button>
           </div>
         </>
       );

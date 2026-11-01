@@ -1,0 +1,235 @@
+/* Login and signup: brand panel on the left, one form card on the right. */
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100vh;
+  background: #f7f9fc;
+}
+.auth-brand {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  overflow: hidden;
+  padding: 44px 52px;
+  background:
+    radial-gradient(ellipse at 100% 100%, #5b8cff66, transparent 60%),
+    linear-gradient(160deg, #3a6fd6, #2353b8 60%, #1b45a0);
+  color: #fff;
+}
+/* Same white wordmark treatment as the sidebar (.brand-image in styles.css). */
+.auth-brand .brand-image {
+  position: relative;
+  display: block;
+  width: 198px;
+  height: 58px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.auth-copy h2 {
+  margin: 0 0 26px;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: -0.8px;
+}
+.auth-copy ul {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.auth-copy li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: #dfe8ff;
+}
+.auth-copy li svg {
+  flex: none;
+  padding: 7px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #ffffff1f;
+}
+.auth-main {
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+}
+.auth-card {
+  width: min(100%, 440px);
+}
+.auth-card h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+  color: #14365f;
+}
+.auth-sub {
+  margin: 8px 0 28px;
+  font-size: 14px;
+  color: #52647c;
+}
+.auth-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.auth-field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.auth-field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3d516e;
+}
+.auth-field input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #d7e2f0;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15px;
+  color: #1c304d;
+}
+.auth-field input:focus {
+  outline: none;
+  border-color: #2f6bff;
+  box-shadow: 0 0 0 3px #2f6bff1f;
+}
+.auth-field input[aria-invalid="true"] {
+  border-color: #d9534f;
+}
+.auth-field small,
+.auth-error {
+  font-size: 12px;
+  color: #c2413b;
+}
+.auth-find {
+  display: flex;
+  justify-content: center;
+  margin: 18px 0 0;
+  font-size: 14px;
+}
+.auth-find button {
+  padding: 0 14px;
+  line-height: 1;
+  color: #52647c;
+}
+/* Equal padding on both sides keeps every divider centered between two links. */
+.auth-find button + button {
+  border-left: 1px solid #cfd8e6;
+}
+.auth-find button:last-child {
+  font-weight: 650;
+  color: #285caf;
+}
+.auth-find button:hover {
+  color: #285caf;
+  text-decoration: underline;
+}
+.auth-agree {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 4px 0 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #3d516e;
+  cursor: pointer;
+}
+.auth-agree input {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  accent-color: #2f6bff;
+}
+.auth-problem {
+  margin: 12px 0 0;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: #fdeeee;
+  font-size: 13px;
+  color: #b33a35;
+}
+.auth-submit {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 18px;
+  justify-content: center;
+  font-size: 15px;
+}
+.auth-switch {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 18px 0 0;
+  font-size: 14px;
+  color: #52647c;
+}
+.auth-switch button {
+  font-weight: 650;
+  color: #285caf;
+}
+.auth-switch button:hover {
+  text-decoration: underline;
+}
+.auth-demo {
+  display: grid;
+  gap: 10px;
+  margin-top: 26px;
+  text-align: center;
+}
+.auth-demo > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #8796ab;
+}
+.auth-demo > span::before,
+.auth-demo > span::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid #e3eaf4;
+}
+.auth-demo .btn {
+  justify-content: center;
+  min-height: 44px;
+}
+.auth-demo small {
+  font-size: 12px;
+  color: #8796ab;
+}
+@media (max-width: 900px) {
+  .auth {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .auth-brand {
+    gap: 18px;
+    padding: 28px 24px;
+  }
+  .auth-copy ul {
+    display: none;
+  }
+  .auth-copy h2 {
+    margin: 0;
+    font-size: 24px;
+  }
+}
+@media (max-width: 480px) {
+  .auth-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}

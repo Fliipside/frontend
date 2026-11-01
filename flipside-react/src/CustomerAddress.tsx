@@ -8,6 +8,7 @@ import {
   regionTrail,
   type MapIndex,
 } from "./geography";
+import "./customer-address.css";
 import type { Customer } from "./model";
 
 export default function CustomerAddress({ customer }: { customer: Customer }) {

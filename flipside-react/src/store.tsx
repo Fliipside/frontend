@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { initialState, withBriefings, type State } from "./model";
+import { loadSession, saveSession, type User } from "./auth";
 export type Modal = { type: string; id?: string; tab?: string };
 type Store = {
   s: State;
@@ -17,6 +18,9 @@ type Store = {
   toast: string;
   page: string;
   go: (page: string) => void;
+  user: User | null;
+  signIn: (user: User) => void;
+  signOut: () => void;
 };
 const Context = createContext<Store>(null!);
 const pages = [
@@ -51,7 +55,8 @@ export function Provider({ children }: { children: ReactNode }) {
   const [s, setS] = useState<State>(load),
     [modal, setModal] = useState<Modal | null>(null),
     [toast, notify] = useState(""),
-    [page, setPage] = useState(getPage);
+    [page, setPage] = useState(getPage),
+    [user, setUser] = useState<User | null>(loadSession);
   useEffect(() => {
     try {
       localStorage.setItem("flipside-react-v1", JSON.stringify(s));
@@ -99,6 +104,16 @@ export function Provider({ children }: { children: ReactNode }) {
         toast,
         page,
         go,
+        user,
+        signIn: (u) => {
+          saveSession(u);
+          setUser(u);
+        },
+        signOut: () => {
+          saveSession(null);
+          setUser(null);
+          setModal(null);
+        },
       }}
     >
       {children}
