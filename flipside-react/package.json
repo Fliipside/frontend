@@ -9,7 +9,7 @@
     "prebuild": "node scripts/build-map-data.mjs --if-missing",
     "build": "tsc -b && vite build",
     "pretest": "node scripts/build-map-data.mjs --if-missing",
-    "test": "tsx --test src/model.test.ts src/geography.test.ts",
+    "test": "tsx --test src/model.test.ts src/geography.test.ts src/auth.test.ts",
     "build:maps": "node scripts/build-map-data.mjs"
   },
   "dependencies": {

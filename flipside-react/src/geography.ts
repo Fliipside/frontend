@@ -15,7 +15,6 @@ export type Region = {
   center: [number, number];
 };
 export type MapIndex = { version: string; source: string; regions: Region[] };
-export type MapShape = { code: string; path: string };
 export const sampleLocations: Record<string, CardLocation> = {
   nova: {
     address: "서울특별시 강남구 테헤란로 152 (역삼동)",
@@ -134,21 +133,4 @@ export function loadMapIndex() {
       indexPromise = undefined;
       throw e;
     }));
-}
-const shapeCache = new Map<string, Promise<MapShape[]>>();
-export function loadShapes(parent: string) {
-  if (!shapeCache.has(parent))
-    shapeCache.set(
-      parent,
-      fetch(`/maps/${parent}.json`)
-        .then((r) => {
-          if (!r.ok) throw new Error("지도를 불러오지 못했어요.");
-          return r.json() as Promise<MapShape[]>;
-        })
-        .catch((e) => {
-          shapeCache.delete(parent);
-          throw e;
-        }),
-    );
-  return shapeCache.get(parent)!;
 }

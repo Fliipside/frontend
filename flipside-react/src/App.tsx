@@ -14,7 +14,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   ChevronRight,
-  PanelLeftClose,
   Command,
   Mic,
   Check,
@@ -49,6 +48,7 @@ import {
   SettingsPage,
 } from "./pages";
 import Dialogs from "./dialogs";
+import AuthPage from "./AuthPage";
 export const navigation = [
   { id: "overview", label: "오버뷰", icon: LayoutDashboard },
   { id: "customers", label: "고객 & 관계 기억", icon: Users },
@@ -58,7 +58,7 @@ export const navigation = [
   { id: "calendar", label: "캘린더", icon: CalendarDays },
 ];
 function Dashboard() {
-  const { s, open, go } = useStore();
+  const { s, open, go, user } = useStore();
   const [filter, setFilter] = useState("전체");
   const records = visibleRecords(s),
     pending = records.filter((r) => !s.done.includes(r.id));
@@ -72,8 +72,7 @@ function Dashboard() {
   return (
     <>
       <Head
-        eyebrow="YOUR RELATIONSHIP OVERVIEW"
-        title="좋은 아침이에요, 지원님"
+        title={`좋은 아침이에요, ${user?.name}님`}
         sub="오늘도 대화 속 기회를 발견하고, 관계의 다음을 이어가세요."
       >
         <span className="today">
@@ -326,15 +325,11 @@ function Dashboard() {
   );
 }
 function Shell() {
-  const { s, update, page, go, open, toast } = useStore();
+  const { s, update, page, go, open, toast, user } = useStore();
   const [menu, setMenu] = useState(false);
   const pending = visibleRecords(s).filter(
     (r) => !s.done.includes(r.id),
   ).length;
-  const current =
-    page === "settings"
-      ? "설정 및 공유 관리"
-      : navigation.find((n) => n.id === page)?.label;
   return (
     <div className="app">
       <aside className={`sidebar ${menu ? "open" : ""}`}>
@@ -371,14 +366,13 @@ function Shell() {
         <div className="capture-card">
           <div className="capture-art">
             <span className="mic-object">
-              <Mic size={26} />
+              <Mic size={18} />
             </span>
             <div className="mini-wave">
               {[12, 22, 32, 18, 27, 14, 23].map((h, i) => (
                 <i key={i} style={{ height: h }} />
               ))}
             </div>
-            <span className="capture-star">✧</span>
           </div>
           <h3>대화가 자산이 되는 순간</h3>
           <p>
@@ -387,8 +381,8 @@ function Shell() {
             우리 팀의 관계로 기억해요.
           </p>
           <button onClick={() => open("record")}>
+            <Mic size={15} />
             대화 기록하기
-            <Plus size={15} />
           </button>
         </div>
         <button
@@ -407,10 +401,10 @@ function Shell() {
           <ArrowUpRight size={14} />
         </button>
         <button className="profile" onClick={() => open("profile")}>
-          <Avatar name="이지원" />
+          <Avatar name={user!.name} />
           <span>
-            <strong>이지원</strong>
-            <small>영업팀 · 매니저</small>
+            <strong>{user!.name}</strong>
+            <small>{user!.company}</small>
           </span>
           <ChevronDown size={14} />
         </button>
@@ -432,8 +426,6 @@ function Shell() {
             >
               <Menu size={20} />
             </button>
-            <PanelLeftClose size={18} className="desktop-only" />
-            <b>{current}</b>
           </div>
           <div className="topbar-tools">
             <button
@@ -445,23 +437,17 @@ function Shell() {
               <span>고객, 대화 검색</span>
               <kbd>⌘ K</kbd>
             </button>
-            <button
-              className="viewer"
-              onClick={() =>
-                update((s) => ({
-                  ...s,
-                  viewer: s.viewer === "me" ? "team" : "me",
-                }))
-              }
-            >
-              <Users size={14} />
-              {s.viewer === "me" ? "내 보기" : "팀원 보기"}
-              <ChevronDown size={12} />
-            </button>
-            <span className="demo-badge">
-              <i />
-              DEMO
-            </span>
+            <div className="viewer" role="group" aria-label="보기 권한">
+              {(["me", "team"] as const).map((v) => (
+                <button
+                  key={v}
+                  aria-pressed={s.viewer === v}
+                  onClick={() => update((s) => ({ ...s, viewer: v }))}
+                >
+                  {v === "me" ? "내 보기" : "팀원 보기"}
+                </button>
+              ))}
+            </div>
             <span className="topbar-divider" />
             <button
               className="icon-button notification"
@@ -476,7 +462,7 @@ function Shell() {
               onClick={() => open("profile")}
               aria-label="내 프로필"
             >
-              <Avatar name="이지원" />
+              <Avatar name={user!.name} />
             </button>
           </div>
         </header>
@@ -525,10 +511,13 @@ function Shell() {
     </div>
   );
 }
+function Gate() {
+  return useStore().user ? <Shell /> : <AuthPage />;
+}
 export default function App() {
   return (
     <Provider>
-      <Shell />
+      <Gate />
     </Provider>
   );
 }

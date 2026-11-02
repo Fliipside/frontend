@@ -1,4 +1,4 @@
-import type { ReactNode, CSSProperties } from "react";
+import { useId, type ReactNode, type CSSProperties } from "react";
 import {
   ArrowUpRight,
   ChevronRight,
@@ -86,20 +86,101 @@ export function CardHead({
     </div>
   );
 }
+// Ring centerline around the orb center (145.5, 127.5), tilted -20deg; it starts on the
+// left end and runs over the back first, so the clip halves split it into behind/in front.
+const ring = { cx: 145.5, cy: 127.5, rx: 130.5, ry: 37.5, tilt: -20 };
+const ringPath = "M22.87 172.13 A130.5 37.5 -20 1 1 268.13 82.87 A130.5 37.5 -20 1 1 22.87 172.13";
+function OrbRing({ half, id }: { half: "back" | "front"; id: string }) {
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const rotate = `rotate(${ring.tilt} ${ring.cx} ${ring.cy})`;
+  // Reduced motion parks each moon at a fixed point on the ring instead of orbiting.
+  const moon = (r: number, fill: string, begin: string, [x, y]: number[]) =>
+    still ? (
+      <circle r={r} cx={x} cy={y} fill={`url(#${fill})`} />
+    ) : (
+      <circle r={r} fill={`url(#${fill})`}>
+        <animateMotion dur="14s" begin={begin} repeatCount="indefinite" path={ringPath} />
+      </circle>
+    );
+  return (
+    <svg className={`orb-ring ${half}`} viewBox="0 0 285 255" aria-hidden="true">
+      <defs>
+        <clipPath id={`${id}-${half}`}>
+          <rect
+            x="-60"
+            y={half === "back" ? -300 : ring.cy}
+            width="420"
+            height={half === "back" ? 300 + ring.cy : 300}
+            transform={rotate}
+          />
+        </clipPath>
+        <linearGradient id={`${id}-band-${half}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f6f9ff" />
+          <stop offset=".55" stopColor="#cfdffd" />
+          <stop offset="1" stopColor="#9fbaf0" />
+        </linearGradient>
+        <radialGradient id={`${id}-pearl-${half}`} cx=".32" cy=".28" r=".8">
+          <stop offset="0" stopColor="#fff" />
+          <stop offset=".3" stopColor="#e8f0ff" />
+          <stop offset=".7" stopColor="#bed0f4" />
+          <stop offset="1" stopColor="#8faadf" />
+        </radialGradient>
+        <radialGradient id={`${id}-blue-${half}`} cx=".32" cy=".28" r=".8">
+          <stop offset="0" stopColor="#cfe0ff" />
+          <stop offset=".45" stopColor="#6f97ec" />
+          <stop offset="1" stopColor="#3a63c0" />
+        </radialGradient>
+      </defs>
+      {half === "back" && (
+        <ellipse
+          cx={ring.cx}
+          cy={ring.cy}
+          rx="112"
+          ry="104"
+          transform={`rotate(32 ${ring.cx} ${ring.cy})`}
+          className="orb-halo"
+        />
+      )}
+      <g clipPath={`url(#${id}-${half})`}>
+        <ellipse
+          cx={ring.cx}
+          cy={ring.cy}
+          rx={ring.rx}
+          ry={ring.ry}
+          transform={rotate}
+          fill="none"
+          stroke={`url(#${id}-band-${half})`}
+          strokeWidth="9"
+          className="orb-band"
+        />
+        <ellipse
+          cx={ring.cx}
+          cy={ring.cy - 2.5}
+          rx={ring.rx}
+          ry={ring.ry}
+          transform={rotate}
+          fill="none"
+          className="orb-sheen"
+        />
+        {moon(15, `${id}-pearl-${half}`, "-3s", [245.3, 71.3])}
+        {moon(8, `${id}-blue-${half}`, "-10s", [45.7, 183.7])}
+      </g>
+    </svg>
+  );
+}
 export function Orb({ small = false }: { small?: boolean }) {
+  const id = useId().replace(/:/g, "");
   return (
     <div className={`orb-scene ${small ? "mini" : ""}`} aria-hidden="true">
       <div className="orb-shadow" />
-      <div className="orbit orbit-one" />
-      <div className="orbit orbit-two" />
+      <OrbRing half="back" id={id} />
       <div className="orb" />
-      <div className="satellite satellite-a" />
-      <div className="satellite satellite-b" />
+      <OrbRing half="front" id={id} />
       <div className="glass-tag tag-a">
         <Sparkles size={16} /> 관계를 기억해요
       </div>
       <div className="glass-tag tag-b">
-        <Check size={14} /> 다음 기회 발견
+        <Check size={14} /> 다음 행동 제안
       </div>
     </div>
   );

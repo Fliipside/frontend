@@ -18,14 +18,13 @@ import {
   ChevronRight,
   CalendarDays,
   ShieldCheck,
-  Network,
   Download,
   Clock,
   RotateCcw,
   MapPin,
 } from "lucide-react";
 import { useStore } from "./store";
-import RelationshipMap from "./RelationshipMap";
+import RelationshipUniverse from "./RelationshipUniverse";
 
 import {
   visibleRecords,
@@ -59,7 +58,6 @@ export function CustomersPage() {
   return (
     <>
       <Head
-        eyebrow="RELATIONSHIP MEMORY"
         title="고객 & 관계 기억"
         sub="대화가 쌓일수록, 고객을 더 깊이 이해하게 됩니다."
       >
@@ -189,7 +187,6 @@ export function RecordsPage() {
   return (
     <>
       <Head
-        eyebrow="CONVERSATIONS THAT MATTER"
         title="대화 기록"
         sub="흩어진 대화를 모아, 관계의 맥락으로 정리하세요."
       >
@@ -323,7 +320,6 @@ export function ActionsPage() {
   return (
     <>
       <Head
-        eyebrow="MAKE THE NEXT MOVE"
         title="다음 행동"
         sub="고객과 나눈 약속, 가장 좋은 순간에 이어가세요."
       />
@@ -368,18 +364,14 @@ export function NetworkPage() {
   return (
     <>
       <Head
-        eyebrow="RELATIONSHIP EXPLORER"
         title="관계도"
-        sub="지역에서 고객을 찾고, 사람과 대화의 연결을 한눈에 살펴보세요."
+        sub="고객이 우리 팀과 얼마나 가까운지 보고, 누구를 통해 이어갈지 확인하세요."
       >
-        <button className="btn" disabled={!id || !latest(s, id)} onClick={() => open("intro", id)}>
-          <Network size={16} />사내 소개 경로 탐색
-        </button>
         <button className="btn primary" onClick={() => open("customer-add")}>
           <Plus size={16} />고객 등록
         </button>
       </Head>
-      <RelationshipMap selectedId={id} onSelect={setId} />
+      <RelationshipUniverse selectedId={id} onSelect={setId} />
     </>
   );
 }
@@ -467,7 +459,6 @@ export function CalendarPage() {
   return (
     <>
       <Head
-        eyebrow="MAKE TIME FOR RELATIONSHIPS"
         title="캘린더"
         sub="미팅 일정부터 후속 약속까지, 관계를 이어갈 시간을 한눈에."
       >
