@@ -1,0 +1,46 @@
+/* Shared spacing and hierarchy for data-heavy dashboard surfaces. */
+:root { --panel-border: #dfe6ef; --panel-copy: #52647c; --panel-ink: #1c304d; }
+.card { border-color: var(--panel-border); border-radius: 16px; box-shadow: 0 2px 4px #1c304d04; }
+.card-head { padding: 23px 24px 20px; gap: 16px; }
+.card-head h2 { color: var(--panel-ink); font-size: 17px; font-weight: 700; line-height: 1.5; }
+.card-head p { font-size: 13px; line-height: 1.6; color: var(--panel-copy); }
+.card-head select { min-height: 38px; border: 1px solid var(--panel-border); background: #fff; color: #425570; font-size: 13px; }
+.metrics, .customer-stats { gap: 20px; }
+.metric { padding: 22px 24px; }
+.metric-top { color: #52647c; font-weight: 500; }
+.metric-icon { width: 40px; height: 40px; border-radius: 12px; background: #f0f5fd; box-shadow: none; }
+.metric-data { margin-top: 16px; }
+.metric-data strong { font-size: 34px; font-weight: 700; letter-spacing: -1px; }
+.metric-bottom { margin-top: 16px; padding-top: 12px; border-top: 1px solid #edf1f6; color: #5a6b81; }
+.metric:hover { border-color: #a9c4eb; box-shadow: 0 4px 12px #27579d0b; }
+.dashboard-mid, .dashboard-bottom, .hero-layout { gap: 20px; }
+.list-toolbar { padding: 20px 24px; gap: 16px; flex-wrap: wrap; background: #fff; }
+.list-toolbar.standalone { border: 1px solid var(--panel-border); border-radius: 13px; margin-bottom: 20px; }
+.list-toolbar .tabs, .page-tabs { padding: 4px; border: 1px solid #e6ebf2; border-radius: 10px; background: #f5f7fa; gap: 4px; }
+.list-toolbar .tabs button, .page-tabs button { min-height: 34px; padding: 7px 13px; border-radius: 7px; font-size: 13px; color: #52647c; }
+.list-toolbar .tabs button.active, .page-tabs button.active { background: #fff; color: #2458ad; box-shadow: 0 1px 4px #1c304d15; }
+.page-tabs { width: fit-content; margin-bottom: 20px; }
+.input-search { border-color: #dce4ee; min-height: 40px; }
+.input-search input { font-size: 13px; }
+.view-toggle { height: 40px; align-items: center; background: #fff; border-color: #dce4ee; }
+.table-wrap thead { background: #f7f9fc; }
+.table-wrap th { font-size: 12px; font-weight: 600; color: #55647b; padding: 14px 18px; border-color: #e8edf4; }
+.table-wrap td { padding: 18px; color: #435571; font-size: 13px; border-color: #edf1f6; }
+.table-wrap th:first-child, .table-wrap td:first-child { padding-left: 24px; }
+.table-wrap th:last-child, .table-wrap td:last-child { padding-right: 24px; }
+.table-wrap tbody tr:hover { background: #f8fbff; }
+.table-wrap .company strong { font-size: 14px; color: #203650; font-weight: 650; }
+.table-wrap .company small { font-size: 12px; color: #63738b; margin-top: 5px; }
+.table-wrap .badge { padding: 5px 9px; border-radius: 6px; font-size: 12px; font-weight: 550; }
+.table-wrap .badge.blue { background: #eaf2ff; color: #275aad; }
+.table-wrap .badge.green { background: #e9f6ef; color: #227452; }
+.table-wrap .badge.purple { background: #edf0fa; color: #53649a; }
+.table-footer { padding: 16px 24px; background: #fcfdff; color: #607089; }
+.record-card, .full-action { box-shadow: 0 2px 4px #1c304d04; }
+.record-title, .action-title { color: #243b5b; font-weight: 600; }
+.dashboard-customer-section { margin-top: 20px; }
+
+@media(max-width:900px) { .metric { padding:20px; } }
+@media(max-width:700px) {
+  .card-head { padding:19px 18px; } .metrics, .customer-stats { gap:12px; } .metric { padding:17px; } .metric-data strong { font-size:28px; } .metric-top { font-size:12px; } .metric-bottom { margin-top:12px; padding-top:10px; } .list-toolbar { padding:16px; } .list-toolbar > .button-row { width:100%; } .list-toolbar .input-search { flex:1; } .list-toolbar .input-search input { width:100%; min-width:0; } .list-toolbar .tabs { flex-wrap:wrap; } .table-footer { padding:16px; gap:12px; flex-wrap:wrap; }
+}
