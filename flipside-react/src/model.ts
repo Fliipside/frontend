@@ -3,6 +3,7 @@ import type { CardLocation } from "./geography";
 export type Scope = "private" | "team";
 export type Customer = (typeof seedCustomers)[number] & {
   location?: CardLocation | null;
+  cardImage?: string | null;
 };
 export type Fields = {
   need: string;

@@ -204,7 +204,7 @@ function CustomerPanel({ c }: { c: Customer }) {
       )}
       <button className="uv-address" onClick={() => open("customer", c.id, "address")}>
         <MapPin size={14} />
-        {cardLocation(c)?.address || "명함 주소 등록하기"}
+        {cardLocation(c)?.address || "명함 사진 올리기"}
       </button>
       <div className="uv-actions">
         <button className="btn" disabled={!r} onClick={() => open("intro", c.id)}>

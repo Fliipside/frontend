@@ -1,0 +1,27 @@
+.card-photo {
+  display: grid;
+  gap: 10px;
+  padding: 15px 0 18px;
+  border-bottom: 1px solid #e6ecf4;
+}
+.card-photo h3 {
+  color: #29415f;
+}
+.card-photo p {
+  font-size: 12px;
+  color: #687b95;
+}
+.card-photo img {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+}
+.card-photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.card-photo [role="alert"] {
+  color: #c2413b;
+}
