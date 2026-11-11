@@ -1408,6 +1408,10 @@ td:last-child {
   align-items: center;
   gap: 9px;
 }
+/* The customer list shows names only; other screens keep the mark. */
+.customer-list .company-logo {
+  display: none;
+}
 .company-logo {
   width: 30px;
   height: 31px;
@@ -1658,12 +1662,6 @@ footer i {
   border-color: #bfd4ff;
   background: linear-gradient(120deg, #fff, #f6f9ff);
 }
-.customer-stat > .metric-icon {
-  display: grid;
-  margin-bottom: 18px;
-  width: 36px;
-  height: 36px;
-}
 .customer-stat > strong {
   display: block;
   font-family: "DM Sans";
@@ -1681,12 +1679,6 @@ footer i {
   font-size: 14px;
   color: #687181;
   margin-top: 5px;
-}
-.customer-stat > svg {
-  position: absolute;
-  right: 20px;
-  top: 25px;
-  color: #676f7f;
 }
 .list-toolbar {
   display: flex;
@@ -1801,7 +1793,8 @@ footer i {
   padding-top: 12px;
   border-top: 1px solid var(--line);
   font-size: 12px;
-  color: #5e7192;
+  font-weight: 650;
+  color: var(--button-blue);
 }
 .standalone {
   padding: 4px 0 18px;
@@ -2680,6 +2673,20 @@ footer i {
   min-height: 39px;
   color: #61718d;
 }
+/* Drop the native arrow so every form dropdown matches the inputs beside it. */
+.form-field select {
+  appearance: none;
+  padding-right: 38px;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2361718d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E")
+    no-repeat right 13px center;
+  color: #373f50;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.form-field select:hover {
+  border-color: #c5d3ea;
+}
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2755,81 +2762,6 @@ footer i {
   line-height: 1.9;
   color: #616e88;
   margin-top: 9px;
-}
-.chat-panel {
-  padding: 20px;
-  background:
-    radial-gradient(ellipse at 100% 100%, #e5eeff, transparent), #f4f8ff;
-  border: 1px solid #e5eeff;
-  border-radius: 11px;
-  margin-top: 23px;
-}
-.chat-panel > div:first-child {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #5c6e94;
-  font-size: 14px;
-}
-.chat-panel b {
-  font-weight: 550;
-}
-.chat-panel .badge {
-  margin-left: auto;
-  font-size: 11px;
-  letter-spacing: 1px;
-}
-.question-chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 15px 0;
-}
-.question-chips button {
-  background: #fff9;
-  border: 1px solid #e5ecfa;
-  padding: 6px 9px;
-  border-radius: 6px;
-  color: #626f86;
-  font-size: 11px;
-}
-.chat-panel form {
-  display: flex;
-  gap: 8px;
-  background: #fff;
-  border: 1px solid #e1e9f9;
-  padding: 5px 6px 5px 11px;
-  border-radius: 8px;
-}
-.chat-panel input {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  font-size: 14px;
-  outline: none;
-  padding: 7px 0;
-}
-.send-button {
-  height: 30px;
-  width: 31px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, #86acf7, #648ee2);
-  color: #fff;
-  border-radius: 7px;
-  box-shadow:
-    inset 0 1px 2px #c2d6ff77,
-    0 2px 4px #7c9dde33;
-}
-.chat-answer {
-  white-space: pre-line;
-  font-size: 14px;
-  line-height: 2;
-  color: #61708e;
-  background: #ffffffb0;
-  border-radius: 8px;
-  padding: 14px;
-  margin-top: 15px;
 }
 .brief-block {
   border: 1px solid #e8eef9;
@@ -3910,9 +3842,6 @@ footer i {
   .customer-stat > span:last-of-type {
     font-size: 12px;
   }
-  .customer-stat > .metric-icon {
-    margin-bottom: 12px;
-  }
   .list-toolbar {
     padding: 15px;
     gap: 15px;
@@ -4273,31 +4202,6 @@ footer i {
   .memory-block p {
     font-size: 14px;
   }
-  .chat-panel {
-    padding: 15px;
-  }
-  .chat-panel > div:first-child {
-    font-size: 14px;
-    gap: 6px;
-  }
-  .chat-panel .badge {
-    font-size: 11px;
-    letter-spacing: 0.5px;
-  }
-  .question-chips {
-    gap: 4px;
-  }
-  .question-chips button {
-    font-size: 11px;
-    padding: 5px 7px;
-  }
-  .chat-panel input {
-    font-size: 12px;
-  }
-  .chat-answer {
-    font-size: 14px;
-    padding: 11px;
-  }
   .analysis-pipeline {
     gap: 5px;
   }
@@ -4456,9 +4360,6 @@ td {
 }
 .form-field > span,
 .dialog-description,
-.chat-answer {
-  color: #5e6e8d;
-}
 .memory-block > span,
 .timeline-more,
 .search-result strong {
@@ -5000,9 +4901,6 @@ td {
 .memory-block p,
 .transcript-row p,
 .dialog-description,
-.chat-answer {
-  color: #4d627f;
-}
 .record-excerpt {
   color: #465f82;
 }
@@ -5378,15 +5276,6 @@ footer {
   .brief-block p {
     font-size: 14px;
   }
-  .chat-panel input {
-    font-size: 13px;
-  }
-  .chat-answer {
-    font-size: 14px;
-  }
-  .question-chips button {
-    font-size: 12px;
-  }
   .form-field input,
   .form-field select {
     font-size: 16px;
@@ -5503,12 +5392,6 @@ footer {
   .full-action .action-due {
     margin-left: 29px;
   }
-  .chat-panel > div:first-child {
-    flex-wrap: wrap;
-  }
-  .chat-panel .badge {
-    margin-left: 0;
-  }
   .network-center small {
     max-width: 75px;
   }
@@ -5538,9 +5421,6 @@ footer {
 .hero-text > button:hover {
   background: var(--button-blue-deep);
   border-color: var(--button-blue-hover);
-}
-.send-button {
-  background: linear-gradient(135deg, var(--button-blue), var(--button-blue-deep));
 }
 p,
 .action-title,

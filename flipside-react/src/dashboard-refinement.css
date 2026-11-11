@@ -28,7 +28,11 @@
 .table-wrap td { padding: 18px; color: #435571; font-size: 13px; border-color: #edf1f6; }
 .table-wrap th:first-child, .table-wrap td:first-child { padding-left: 24px; }
 .table-wrap th:last-child, .table-wrap td:last-child { padding-right: 24px; }
-.table-wrap tbody tr:hover { background: #f8fbff; }
+/* The button column takes only its own width, so the button sits on the right edge under the toolbar. */
+.table-wrap .row-action { width: 1%; text-align: right; white-space: nowrap; }
+/* Rows and the stage cards above share one hover color. */
+.table-wrap tbody tr, .customer-stat { transition: background-color 0.12s; }
+.table-wrap tbody tr:hover, .customer-stat:hover { background: #eef4fd; }
 .table-wrap .company strong { font-size: 14px; color: #203650; font-weight: 650; }
 .table-wrap .company small { font-size: 12px; color: #63738b; margin-top: 5px; }
 .table-wrap .badge { padding: 5px 9px; border-radius: 6px; font-size: 12px; font-weight: 550; }

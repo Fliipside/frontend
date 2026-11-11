@@ -71,17 +71,12 @@ export function CustomersPage() {
         </button>
       </Head>
       <div className="customer-stats">
-        {["전체", "관계 형성", "제안 검토", "협상 중"].map((stage, i) => (
+        {["전체", "관계 형성", "제안 검토", "협상 중"].map((stage) => (
           <button
             className={`card customer-stat ${filter === stage ? "selected" : ""}`}
             onClick={() => setFilter(stage)}
             key={stage}
           >
-            <span
-              className={`metric-icon ${["blue", "purple", "orange", "green"][i]}`}
-            >
-              <Users size={19} />
-            </span>
             <strong>
               {stage === "전체"
                 ? s.customers.length
@@ -89,11 +84,10 @@ export function CustomersPage() {
               <small>곳</small>
             </strong>
             <span>{stage === "전체" ? "전체 고객" : stage}</span>
-            <ArrowUpRight size={17} />
           </button>
         ))}
       </div>
-      <section className="card">
+      <section className="card customer-list">
         <div className="list-toolbar">
           <div className="tabs">
             {["전체", "관계 형성", "제안 검토", "협상 중"].map((v) => (
@@ -163,15 +157,15 @@ export function CustomersPage() {
                   </span>
                 </div>
                 <span className="company-card-link">
-                  관계 기억 열기
-                  <ArrowUpRight size={15} />
+                  상세 보기
+                  <ChevronRight size={15} />
                 </span>
               </button>
             ))}
           </div>
         )}
         <div className="table-footer">
-          총 {list.length}개의 고객<span>가상 데이터 · 이 브라우저에 저장</span>
+          총 {list.length}개의 고객
         </div>
       </section>
     </>
