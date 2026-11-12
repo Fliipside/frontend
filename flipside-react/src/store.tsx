@@ -30,6 +30,7 @@ const pages = [
   "network",
   "actions",
   "calendar",
+  "meeting",
   "settings",
 ];
 const getPage = () =>
