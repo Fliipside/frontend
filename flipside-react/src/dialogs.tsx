@@ -27,7 +27,6 @@ import {
 } from "lucide-react";
 import { useStore } from "./store";
 import {
-  answer,
   visibleRecords,
   visibleHistory,
   latest,
@@ -46,7 +45,7 @@ import {
 } from "./model";
 import { Badge, Company, Timeline, Empty, Wave, Avatar } from "./ui";
 import { ClockPanel } from "./pages";
-import CustomerAddress from "./CustomerAddress";
+import CardPhoto from "./CardPhoto";
 const titles: Record<string, string> = {
   customer: "고객 관계 기억",
   "customer-add": "새 고객 등록",
@@ -93,9 +92,6 @@ export default function Dialogs() {
     >
       <header className="dialog-header">
         <div>
-          <span className="soft-icon">
-            <Sparkles size={17} />
-          </span>
           <h2 id="dialog-title">{titles[modal.type] || "Flipside"}</h2>
         </div>
         <button className="icon-button" onClick={close} aria-label="닫기">
@@ -482,9 +478,7 @@ function Content() {
 }
 function CustomerDetail({ id }: { id: string }) {
   const { s, modal, open } = useStore();
-  const [tab, setTab] = useState(modal?.tab || "memory"),
-    [q, setQ] = useState(""),
-    [response, setResponse] = useState("");
+  const [tab, setTab] = useState(modal?.tab || "memory");
   const c = s.customers.find((c) => c.id === id)!;
   const r = latest(s, id);
   return (
@@ -498,7 +492,7 @@ function CustomerDetail({ id }: { id: string }) {
           ["memory", "관계 기억"],
           ["timeline", "관계 타임라인"],
           ["history", "수주·실패 이력"],
-          ["address", "명함 주소"],
+          ["address", "명함"],
         ].map(([key, label]) => (
           <button
             className={tab === key ? "active" : ""}
@@ -537,7 +531,7 @@ function CustomerDetail({ id }: { id: string }) {
       ) : tab === "timeline" ? (
         <Timeline customer={id} />
       ) : tab === "address" ? (
-        <CustomerAddress key={id} customer={c} />
+        <CardPhoto customer={c} />
       ) : (
         <>
           <HistoryList id={id} />
@@ -549,62 +543,20 @@ function CustomerDetail({ id }: { id: string }) {
           )}
         </>
       )}
-      <div className="chat-panel">
-        <div>
-          <Sparkles size={17} />
-          <b>고객과의 대화에 물어보세요</b>
-          <Badge tone="purple">AI MEMORY</Badge>
-        </div>
-        <div className="question-chips">
-          {[
-            "다시 연락해야 할까?",
-            "예산이 바뀌었나요?",
-            "누가 결정하나요?",
-          ].map((text) => (
-            <button
-              key={text}
-              onClick={() => {
-                setQ(text);
-                setResponse(answer(s, id, text));
-              }}
-            >
-              {text}
+      {tab !== "address" && (
+        <>
+          <div className="dialog-footer">
+            <button className="btn" onClick={() => open("handover", id)}>
+              <Users size={15} />
+              AI 인수인계
             </button>
-          ))}
-        </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (q.trim()) setResponse(answer(s, id, q));
-          }}
-        >
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="이 고객에 대해 궁금한 점을 물어보세요"
-            aria-label="관계 기억 질문"
-            required
-          />
-          <button className="send-button" aria-label="질문 보내기">
-            <ArrowRight size={18} />
-          </button>
-        </form>
-        {response && (
-          <p className="chat-answer" aria-live="polite">
-            {response}
-          </p>
-        )}
-      </div>
-      <div className="dialog-footer">
-        <button className="btn" onClick={() => open("handover", id)}>
-          <Users size={15} />
-          AI 인수인계
-        </button>
-        <button className="btn primary" onClick={() => open("briefing", id)}>
-          <Sparkles size={15} />
-          미팅 브리핑
-        </button>
-      </div>
+            <button className="btn primary" onClick={() => open("briefing", id)}>
+              <Sparkles size={15} />
+              미팅 브리핑
+            </button>
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -752,11 +704,6 @@ function Analysis({ id }: { id: string }) {
             <p>{r.fields[key as keyof Fields]}</p>
           </div>
         ))}
-      </div>
-      <div className="info-note">
-        <Sparkles size={17} />
-        샘플 전사와 정보 추출 결과가 관계 기억·타임라인·관계도·다음 행동에
-        반영됐어요.
       </div>
       <div className="dialog-footer">
         {s.viewer === "me" && (
@@ -1132,7 +1079,7 @@ function AddCustomer() {
         />
       </Field>
       <p className="muted">
-        등록 후 고객 상세의 ‘명함 주소’에서 지도 위치를 확인할 수 있어요.
+        등록 후 고객 상세의 ‘명함’에서 명함 사진을 올릴 수 있어요.
       </p>
       <div className="dialog-footer">
         <button className="btn primary">

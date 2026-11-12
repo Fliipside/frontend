@@ -1,6 +1,5 @@
 import { useId, type ReactNode, type CSSProperties } from "react";
 import {
-  ArrowUpRight,
   ChevronRight,
   Sparkles,
   Check,
@@ -374,13 +373,14 @@ export function CustomerTable({ customers }: { customers: Customer[] }) {
                     ?.date.slice(5)
                     .replace("-", ".") || "미정"}
                 </td>
-                <td>
+                <td className="row-action">
                   <button
-                    className="icon-button"
-                    aria-label={`${c.name} 상세`}
+                    className="btn small primary"
+                    aria-label={`${c.name} 상세 보기`}
                     onClick={() => open("customer", c.id)}
                   >
-                    <ArrowUpRight size={17} />
+                    상세 보기
+                    <ChevronRight size={15} />
                   </button>
                 </td>
               </tr>
