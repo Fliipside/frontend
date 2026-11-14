@@ -411,7 +411,7 @@ function Content() {
             <Avatar name={user!.name} />
             <h3>{user!.name}</h3>
             <p>
-              {user!.company} · {user!.email}
+              {[user!.company, user!.email].filter(Boolean).join(" · ")}
             </p>
           </div>
           <div className="brief-block">
