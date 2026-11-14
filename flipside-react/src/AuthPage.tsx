@@ -66,13 +66,15 @@ function Field({
   );
 }
 export default function AuthPage() {
-  const { signIn, notify } = useStore();
+  const { signIn, notify, toast } = useStore();
   const [mode, setMode] = useState<Mode>("login");
   const [f, setF] = useState(empty);
   const [errors, setErrors] = useState<
     Partial<Record<keyof SignupForm, string>>
   >({});
   const [problem, setProblem] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
   const set =
     (key: keyof SignupForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
       setF({
@@ -102,15 +104,49 @@ export default function AuthPage() {
             : resetErrors(f.email);
     setErrors(found);
     if (Object.keys(found).length) return;
-    if (mode === "login")
-      enter(await logIn(f.email, f.password), "다시 만나서 반가워요");
-    else if (mode === "signup") enter(await signUp(f), "가입을 환영해요");
-    else if (mode === "find-id") setProblem(await findId(f.name, f.company));
-    else setProblem(await requestPasswordReset(f.email));
+    // A second click while the request is on its way would sign up twice.
+    setBusy(true);
+    try {
+      if (mode === "login")
+        enter(await logIn(f.email, f.password), "다시 만나서 반가워요");
+      else if (mode === "signup") {
+        const failed = await signUp(f);
+        if (failed) setProblem(failed);
+        else setDone(true);
+      }
+      else if (mode === "find-id") setProblem(await findId(f.name, f.company));
+      else setProblem(await requestPasswordReset(f.email));
+    } finally {
+      setBusy(false);
+    }
   }
+  // Closing the "signup complete" popup lands on the login form with the new email already filled in.
+  const toLogin = () => {
+    setDone(false);
+    setF({ ...f, password: "", confirm: "" });
+    switchTo("login");
+  };
   const login = mode === "login";
   return (
     <div className="auth">
+      {done && (
+        <dialog
+          className="dialog auth-done"
+          ref={(el) => {
+            if (el && !el.open) el.showModal();
+          }}
+          onCancel={toLogin}
+          aria-labelledby="auth-done-title"
+        >
+          <div className="dialog-body">
+            <h2 id="auth-done-title">회원가입이 완료되었습니다</h2>
+            <p>가입한 이메일과 비밀번호로 로그인해주세요.</p>
+            <button className="btn primary" autoFocus onClick={toLogin}>
+              로그인하러 가기
+            </button>
+          </div>
+        </dialog>
+      )}
       <aside className="auth-brand">
         <span className="brand-image">
           <img src="/brand/flipside-wordmark-no-dot.png" alt="Flipside" />
@@ -216,12 +252,13 @@ export default function AuthPage() {
               )}
             </>
           )}
-          {problem && (
+          {/* The toast only renders inside the app shell, so the "session expired" notice shows here. */}
+          {(problem || toast) && (
             <p className="auth-problem" role="alert">
-              {problem}
+              {problem || toast}
             </p>
           )}
-          <button className="btn primary auth-submit">
+          <button className="btn primary auth-submit" disabled={busy}>
             {
               {
                 login: "로그인",
@@ -261,10 +298,7 @@ export default function AuthPage() {
             >
               데모 계정으로 둘러보기
             </button>
-            <small>
-              로그인과 회원가입은 서버 연결 후 열려요. 지금은 데모 계정으로
-              둘러보세요.
-            </small>
+            <small>계정 없이 예시 데이터로 먼저 둘러볼 수 있어요.</small>
           </div>
         </form>
       </main>
