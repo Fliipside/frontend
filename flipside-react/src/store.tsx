@@ -6,7 +6,12 @@ import {
   type ReactNode,
 } from "react";
 import { initialState, withBriefings, type State } from "./model";
-import { loadSession, saveSession, type User } from "./auth";
+import {
+  loadSession,
+  saveSession,
+  sessionRejected,
+  type User,
+} from "./auth";
 export type Modal = { type: string; id?: string; tab?: string };
 type Store = {
   s: State;
@@ -70,6 +75,17 @@ export function Provider({ children }: { children: ReactNode }) {
     const t = setTimeout(() => notify(""), 4000);
     return () => clearTimeout(t);
   }, [toast]);
+  // shortcut: an expired token is only noticed on page load, because no other screen calls the API yet;
+  // when one does, send its 401 answers here too.
+  useEffect(() => {
+    sessionRejected().then((rejected) => {
+      if (!rejected) return;
+      saveSession(null);
+      setUser(null);
+      setModal(null);
+      notify("로그인이 만료되었어요. 다시 로그인해주세요.");
+    });
+  }, []);
   useEffect(() => {
     const fn = () => setPage(getPage());
     window.addEventListener("hashchange", fn);
