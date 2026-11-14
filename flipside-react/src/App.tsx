@@ -6,6 +6,7 @@ import {
   Network,
   Sparkles,
   CalendarDays,
+  Video,
   Settings,
   Search,
   Bell,
@@ -49,6 +50,7 @@ import {
 } from "./pages";
 import Dialogs from "./dialogs";
 import AuthPage from "./AuthPage";
+import MeetingPage from "./MeetingPage";
 export const navigation = [
   { id: "overview", label: "오버뷰", icon: LayoutDashboard },
   { id: "customers", label: "고객 & 관계 기억", icon: Users },
@@ -56,6 +58,7 @@ export const navigation = [
   { id: "network", label: "관계도", icon: Network },
   { id: "actions", label: "다음 행동", icon: Sparkles },
   { id: "calendar", label: "캘린더", icon: CalendarDays },
+  { id: "meeting", label: "화상 미팅", icon: Video },
 ];
 function Dashboard() {
   const { s, open, go, user } = useStore();
@@ -489,6 +492,8 @@ function Shell() {
             <ActionsPage />
           ) : page === "calendar" ? (
             <CalendarPage />
+          ) : page === "meeting" ? (
+            <MeetingPage />
           ) : (
             <SettingsPage />
           )}
