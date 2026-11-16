@@ -1,0 +1,20 @@
+# Standalone compose for the frontend, kept apart from the backend compose (~/flipside) so it
+# can be updated and restarted on its own. deploy.yml copies this file to ~/flipside-frontend/
+# on the server and runs it there.
+name: flipside-frontend
+
+services:
+  frontend:
+    # FRONTEND_IMAGE overrides the image, e.g. a locally built one when testing this file.
+    image: ${FRONTEND_IMAGE:-yjs0120/spring-boot-app:flipside-frontend}
+    container_name: flipside-frontend
+    restart: unless-stopped
+    ports:
+      # The server's Nginx forwards / to 127.0.0.1:3000. Bound to localhost like the backend
+      # (127.0.0.1:8000), so the only way in from outside is Nginx on port 80.
+      - "127.0.0.1:3000:80"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
