@@ -54,7 +54,8 @@ export function resetErrors(email: string) {
 type Reply<T> =
   | { success: true; data: T }
   | { success: false; code: string; message: string };
-type ApiUser = { id: string; email: string; nickname: string };
+// `company` is missing while the server still runs a backend from before that field existed.
+type ApiUser = { id: string; email: string; nickname: string; company?: string };
 const TOKEN = "flipside-token";
 
 // The path is relative on purpose: Nginx (production) and the Vite proxy (dev) forward /api to the backend.
@@ -102,17 +103,21 @@ export async function logIn(
   } catch {
     // Storage blocked: the session simply lasts until the tab closes.
   }
-  // shortcut: the API has no company field yet, so it is empty after a login; read it from /auth/me once the backend stores it.
-  return { name: me.data.nickname, email: me.data.email, company: "" };
+  // Accounts created before the company field existed have none.
+  return {
+    name: me.data.nickname,
+    email: me.data.email,
+    company: me.data.company ?? "",
+  };
 }
 // Resolves "" when the account was created, or the message to show when it failed.
 // It does not sign in: the user logs in with the new account on the login screen.
 export async function signUp(form: SignupForm): Promise<string> {
-  // shortcut: the company typed at signup is dropped (no API field yet); send it once the backend stores it.
   const signup = await call<ApiUser>("/auth/signup", {
     email: form.email.trim(),
     password: form.password,
     nickname: form.name.trim(),
+    company: form.company.trim(),
   });
   return signup.success ? "" : signup.message;
 }
