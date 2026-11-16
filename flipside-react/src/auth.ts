@@ -50,18 +50,81 @@ export function resetErrors(email: string) {
   return errors;
 }
 
-// Signup and login are empty shells until the FastAPI auth endpoints exist:
-// replace these two bodies with the API calls (resolve a User, or an error message to show).
-const notReady =
-  "로그인과 회원가입은 서버 연결 후 열려요. 지금은 데모 계정으로 둘러보세요.";
-export async function signUp(_form: SignupForm): Promise<User | string> {
-  return notReady;
+// Every backend answer, success or failure, has this shape; `message` is Korean and safe to show.
+type Reply<T> =
+  | { success: true; data: T }
+  | { success: false; code: string; message: string };
+type ApiUser = { id: string; email: string; nickname: string };
+const TOKEN = "flipside-token";
+
+// The path is relative on purpose: Nginx (production) and the Vite proxy (dev) forward /api to the backend.
+async function call<T>(
+  path: string,
+  body?: unknown,
+  token?: string,
+): Promise<Reply<T>> {
+  try {
+    const res = await fetch(`/api/v1${path}`, {
+      method: body ? "POST" : "GET",
+      headers: {
+        ...(body ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return await res.json();
+  } catch {
+    // No network, the backend is down, or the answer was not JSON (a proxy error page).
+    return {
+      success: false,
+      code: "NETWORK",
+      message: "서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.",
+    };
+  }
 }
+
+// Resolves the signed-in User, or the message to show when it failed.
 export async function logIn(
-  _email: string,
-  _password: string,
+  email: string,
+  password: string,
 ): Promise<User | string> {
-  return notReady;
+  const login = await call<{ access_token: string }>("/auth/login", {
+    email: email.trim(),
+    password,
+  });
+  if (!login.success) return login.message;
+  // Login returns only a token, so the name comes from a second call.
+  const token = login.data.access_token;
+  const me = await call<ApiUser>("/auth/me", undefined, token);
+  if (!me.success) return me.message;
+  try {
+    localStorage.setItem(TOKEN, JSON.stringify(token));
+  } catch {
+    // Storage blocked: the session simply lasts until the tab closes.
+  }
+  // shortcut: the API has no company field yet, so it is empty after a login; read it from /auth/me once the backend stores it.
+  return { name: me.data.nickname, email: me.data.email, company: "" };
+}
+// Resolves "" when the account was created, or the message to show when it failed.
+// It does not sign in: the user logs in with the new account on the login screen.
+export async function signUp(form: SignupForm): Promise<string> {
+  // shortcut: the company typed at signup is dropped (no API field yet); send it once the backend stores it.
+  const signup = await call<ApiUser>("/auth/signup", {
+    email: form.email.trim(),
+    password: form.password,
+    nickname: form.name.trim(),
+  });
+  return signup.success ? "" : signup.message;
+}
+// True only when the server rejects the saved token (expired, or the account was deactivated).
+// A demo session has no token, and a network failure is not a rejection, so both stay signed in.
+export async function sessionRejected() {
+  const token = read<string | null>(TOKEN, null);
+  if (!token) return false;
+  const me = await call<ApiUser>("/auth/me", undefined, token);
+  return (
+    !me.success && (me.code === "UNAUTHORIZED" || me.code === "INACTIVE_USER")
+  );
 }
 // Resolve the message to show: the masked email for findId, the "link sent" notice for reset.
 export async function findId(_name: string, _company: string): Promise<string> {
@@ -82,7 +145,10 @@ export const loadSession = () => read<User | null>("flipside-session", null);
 export function saveSession(user: User | null) {
   try {
     if (user) localStorage.setItem("flipside-session", JSON.stringify(user));
-    else localStorage.removeItem("flipside-session");
+    else {
+      localStorage.removeItem("flipside-session");
+      localStorage.removeItem(TOKEN);
+    }
   } catch {
     // Storage blocked: the session simply lasts until the tab closes.
   }
