@@ -1,0 +1,167 @@
+name: Test, build and deploy
+
+# develop: tests and an image build only (nothing is published).
+# main: the same checks, then the image is published to Docker Hub and deployed to the server.
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # One private Docker Hub repository holds every Flipside image; the tag says which service.
+  # Each publish overwrites this single tag, so only the latest version is kept.
+  IMAGE: yjs0120/spring-boot-app
+  TAG: flipside-frontend
+  # Publish and deploy only for commits that have landed on main.
+  RELEASE: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: flipside-react
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: flipside-react/package-lock.json
+
+      - name: Restore map data
+        # `npm test` generates the map data when it is missing; this skips the download.
+        uses: actions/cache@v4
+        with:
+          path: flipside-react/public/maps
+          key: maps-${{ hashFiles('flipside-react/scripts/build-map-data.mjs') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+  build:
+    needs: test
+    # The server is ARM64; an ARM runner builds the image natively.
+    runs-on: ubuntu-24.04-arm
+    # A newer commit on the same branch replaces an unfinished build.
+    concurrency:
+      group: build-frontend-image-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Build image
+        # Runs `npm run build` inside the image, so a type error or a broken build fails here.
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: flipside-react
+          platforms: linux/arm64
+          load: true
+          tags: flipside-frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Check the image serves the app
+        run: |
+          docker run -d --name ci -p 127.0.0.1:3000:80 flipside-frontend:ci
+          for _ in $(seq 1 10); do
+            if curl -fsS http://127.0.0.1:3000/ | grep -q '<div id="root">'; then
+              # A map file proves the generated data made it into the image.
+              curl -fsS -o /dev/null http://127.0.0.1:3000/maps/regions.json
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs ci
+          exit 1
+
+      - name: Log in to Docker Hub
+        if: env.RELEASE == 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish image
+        if: env.RELEASE == 'true'
+        # Same build as above, so every layer comes from the cache.
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: flipside-react
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.IMAGE }}:${{ env.TAG }}
+          cache-from: type=gha
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    # Never cancel a deploy halfway; a newer run waits for this one.
+    concurrency:
+      group: deploy-frontend
+      cancel-in-progress: false
+    env:
+      TARGET: ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          printf 'Host *\n  IdentityFile ~/.ssh/id_deploy\n  IdentitiesOnly yes\n' > ~/.ssh/config
+
+      - name: Copy compose file to the server
+        run: |
+          ssh "$TARGET" 'mkdir -p ~/flipside-frontend'
+          scp deploy/docker-compose.yml "$TARGET:flipside-frontend/docker-compose.yml"
+
+      - name: Deploy to server
+        # The image is private. The server is already logged in to Docker Hub, the same
+        # login the backend deploy pulls with, so no credentials are sent here.
+        run: |
+          ssh "$TARGET" 'bash -s' <<'EOF'
+          set -euo pipefail
+          cd ~/flipside-frontend
+          docker compose pull
+          docker compose up -d
+          docker image prune -f
+          for _ in $(seq 1 10); do
+            if curl -fsS -o /dev/null http://127.0.0.1:3000/; then
+              echo "flipside-frontend is serving on 127.0.0.1:3000."
+              exit 0
+            fi
+            sleep 3
+          done
+          docker logs --tail 50 flipside-frontend
+          exit 1
+          EOF
