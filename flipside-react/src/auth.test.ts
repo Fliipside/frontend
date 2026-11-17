@@ -75,12 +75,20 @@ function fakeBackend(replies: Record<string, unknown>) {
   return sent;
 }
 const ok = (data: unknown) => ({ success: true, code: "SUCCESS", data });
-const me = ok({ id: "1", email: "kj@flipside.app", nickname: "김경진" });
+const me = ok({
+  id: "1",
+  email: "kj@flipside.app",
+  nickname: "김경진",
+  company: "Flipside",
+});
 const token = ok({ access_token: "tkn", token_type: "bearer", expires_in: 1 });
 
-test("signup sends the name as nickname, never the company, and does not sign in", async () => {
+test("signup sends the name as nickname with the company, and does not sign in", async () => {
   const sent = fakeBackend({ "/auth/signup": me });
-  assert.equal(await signUp({ ...valid, name: " 김경진 " }), "");
+  assert.equal(
+    await signUp({ ...valid, name: " 김경진 ", company: " Flipside " }),
+    "",
+  );
   assert.deepEqual(sent, [
     {
       path: "/auth/signup",
@@ -88,6 +96,7 @@ test("signup sends the name as nickname, never the company, and does not sign in
         email: "kj@flipside.app",
         password: "flip2026",
         nickname: "김경진",
+        company: "Flipside",
       },
       auth: undefined,
     },
@@ -102,15 +111,22 @@ test("signup sends the name as nickname, never the company, and does not sign in
   });
   assert.equal(await signUp(valid), "이미 사용 중인 이메일입니다.");
 });
-test("login fetches the name with the new token", async () => {
+test("login fetches the name and company with the new token", async () => {
   const sent = fakeBackend({ "/auth/login": token, "/auth/me": me });
   assert.deepEqual(await logIn(" kj@flipside.app ", "flip2026"), {
     name: "김경진",
     email: "kj@flipside.app",
-    company: "",
+    company: "Flipside",
   });
   assert.equal(sent[0].body.email, "kj@flipside.app");
   assert.equal(sent[1].auth, "Bearer tkn");
+  // A backend from before the company field answers without it.
+  fakeBackend({
+    "/auth/login": token,
+    "/auth/me": ok({ id: "1", email: "kj@flipside.app", nickname: "김경진" }),
+  });
+  const user = await logIn("kj@flipside.app", "flip2026");
+  assert.equal(typeof user === "string" ? user : user.company, "");
 });
 test("a failed login shows the server's message; an unreachable server shows our own", async () => {
   fakeBackend({
