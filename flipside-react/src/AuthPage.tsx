@@ -2,13 +2,17 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight, AudioLines, Network, Sparkles } from "lucide-react";
 import { useStore } from "./store";
 import {
+  codeError,
+  confirmEmailCode,
   demoUser,
   findId,
   findIdErrors,
   logIn,
   loginErrors,
+  requestEmailCode,
   requestPasswordReset,
   resetErrors,
+  resetPassword,
   signUp,
   signupErrors,
   type SignupForm,
@@ -17,6 +21,8 @@ import {
 import "./auth.css";
 
 type Mode = "login" | "signup" | "find-id" | "reset";
+// This popup only closes; the other "all done" popups go on to the login form.
+const VERIFIED = "이메일 인증이 완료되었습니다";
 const copy: Record<Mode, [string, string]> = {
   login: ["로그인", "팀의 관계 기억으로 돌아가요."],
   signup: ["회원가입", "몇 가지만 입력하면 바로 시작할 수 있어요."],
@@ -26,22 +32,25 @@ const copy: Record<Mode, [string, string]> = {
   ],
   reset: [
     "비밀번호 찾기",
-    "가입한 이메일로 비밀번호 재설정 링크를 보내드려요.",
+    "가입한 이메일로 받은 인증번호로 새 비밀번호를 정해요.",
   ],
 };
 const empty: SignupForm = {
   name: "",
   company: "",
   email: "",
+  code: "",
   password: "",
   confirm: "",
   agree: false,
 };
 
+// `children` sit to the right of the input: the "send code" and "confirm" buttons.
 function Field({
   id,
   label,
   error,
+  children,
   ...input
 }: {
   id: string;
@@ -49,20 +58,23 @@ function Field({
   error?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="auth-field" htmlFor={id}>
-      <span>{label}</span>
-      <input
-        id={id}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...input}
-      />
+    <div className="auth-field">
+      <label htmlFor={id}>{label}</label>
+      <div>
+        <input
+          id={id}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
+          {...input}
+        />
+        {children}
+      </div>
       {error && (
         <small id={`${id}-error`} role="alert">
           {error}
         </small>
       )}
-    </label>
+    </div>
   );
 }
 export default function AuthPage() {
@@ -74,7 +86,15 @@ export default function AuthPage() {
   >({});
   const [problem, setProblem] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  // The title of the "all done" popup, or "" while it is closed.
+  const [done, setDone] = useState("");
+  // The address the latest code was mailed to, and the address that proved itself with a code.
+  // Both are compared with the email field, so editing the email starts over by itself.
+  const [sentTo, setSentTo] = useState("");
+  const [verified, setVerified] = useState("");
+  const email = f.email.trim();
+  const sent = !!email && sentTo === email;
+  const proven = !!email && verified === email;
   const set =
     (key: keyof SignupForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
       setF({
@@ -85,7 +105,34 @@ export default function AuthPage() {
     setMode(next);
     setErrors({});
     setProblem("");
+    // A signup code does not work for a reset, and the other way round.
+    setSentTo("");
   };
+  // Runs one mail-code request; true when it worked, otherwise the message is on screen.
+  const ask = async (request: Promise<string>) => {
+    setProblem("");
+    setBusy(true);
+    const failed = await request.finally(() => setBusy(false));
+    setProblem(failed);
+    return !failed;
+  };
+  async function sendCode() {
+    const found = resetErrors(f, false);
+    setErrors(found);
+    if (found.email) return;
+    const request = mode === "signup" ? requestEmailCode : requestPasswordReset;
+    if (!(await ask(request(email)))) return;
+    setSentTo(email);
+    setF({ ...f, code: "" });
+  }
+  async function confirmCode() {
+    const code = codeError(f.code);
+    setErrors({ code });
+    if (!code && (await ask(confirmEmailCode(email, f.code)))) {
+      setVerified(email);
+      setDone(VERIFIED);
+    }
+  }
   const enter = (result: User | string, welcome: string) => {
     if (typeof result === "string") return setProblem(result);
     signIn(result);
@@ -94,14 +141,16 @@ export default function AuthPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setProblem("");
-    const found =
+    const found: typeof errors =
       mode === "login"
         ? loginErrors(f.email, f.password)
         : mode === "signup"
           ? signupErrors(f)
           : mode === "find-id"
             ? findIdErrors(f.name, f.company)
-            : resetErrors(f.email);
+            : resetErrors(f, sent);
+    if (mode === "signup" && !found.email && !proven)
+      found.email = "이메일 인증을 먼저 완료해주세요.";
     setErrors(found);
     if (Object.keys(found).length) return;
     // A second click while the request is on its way would sign up twice.
@@ -111,21 +160,31 @@ export default function AuthPage() {
         enter(await logIn(f.email, f.password), "다시 만나서 반가워요");
       else if (mode === "signup") {
         const failed = await signUp(f);
-        if (failed) setProblem(failed);
-        else setDone(true);
-      }
-      else if (mode === "find-id") setProblem(await findId(f.name, f.company));
-      else setProblem(await requestPasswordReset(f.email));
+        if (!failed) setDone("회원가입이 완료되었습니다");
+        else {
+          setProblem(failed.message);
+          // The verification ran out before signing up: let the user get a new code.
+          if (failed.code === "EMAIL_NOT_VERIFIED") {
+            setVerified("");
+            setSentTo("");
+          }
+        }
+      } else if (mode === "find-id")
+        setProblem(await findId(f.name, f.company));
+      else if (!sent) await sendCode();
+      else if (await ask(resetPassword(f)))
+        setDone("비밀번호가 변경되었습니다");
     } finally {
       setBusy(false);
     }
   }
-  // Closing the "signup complete" popup lands on the login form with the new email already filled in.
+  // Closing the "all done" popup lands on the login form with the email already filled in.
   const toLogin = () => {
-    setDone(false);
-    setF({ ...f, password: "", confirm: "" });
+    setDone("");
+    setF({ ...f, code: "", password: "", confirm: "" });
     switchTo("login");
   };
+  const closeDone = done === VERIFIED ? () => setDone("") : toLogin;
   const login = mode === "login";
   return (
     <div className="auth">
@@ -135,14 +194,18 @@ export default function AuthPage() {
           ref={(el) => {
             if (el && !el.open) el.showModal();
           }}
-          onCancel={toLogin}
+          onCancel={closeDone}
           aria-labelledby="auth-done-title"
         >
           <div className="dialog-body">
-            <h2 id="auth-done-title">회원가입이 완료되었습니다</h2>
-            <p>가입한 이메일과 비밀번호로 로그인해주세요.</p>
-            <button className="btn primary" autoFocus onClick={toLogin}>
-              로그인하러 가기
+            <h2 id="auth-done-title">{done}</h2>
+            <p>
+              {done === VERIFIED
+                ? "나머지 항목을 입력하고 가입을 마쳐주세요."
+                : "이메일과 비밀번호로 로그인해주세요."}
+            </p>
+            <button className="btn primary" autoFocus onClick={closeDone}>
+              {done === VERIFIED ? "확인" : "로그인하러 가기"}
             </button>
           </div>
         </dialog>
@@ -207,12 +270,54 @@ export default function AuthPage() {
               value={f.email}
               onChange={set("email")}
               error={errors.email}
-            />
+            >
+              {(mode === "signup" || (mode === "reset" && sent)) && (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy || proven}
+                  onClick={sendCode}
+                >
+                  {proven ? "인증 완료" : sent ? "다시 받기" : "인증번호 받기"}
+                </button>
+              )}
+            </Field>
           )}
-          {(login || mode === "signup") && (
+          {(mode === "signup" || mode === "reset") && sent && !proven && (
+            <>
+              <Field
+                id="code"
+                label="인증번호"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="메일로 받은 숫자 6자리"
+                value={f.code}
+                onChange={set("code")}
+                error={errors.code}
+              >
+                {mode === "signup" && (
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={busy}
+                    onClick={confirmCode}
+                  >
+                    확인
+                  </button>
+                )}
+              </Field>
+              <p className="auth-hint">
+                {mode === "signup"
+                  ? "메일이 오지 않으면 스팸함을 확인해주세요."
+                  : "가입된 이메일이라면 인증번호가 도착해요. 오지 않으면 스팸함을 확인해주세요."}
+              </p>
+            </>
+          )}
+          {(login || mode === "signup" || (mode === "reset" && sent)) && (
             <Field
               id="password"
-              label="비밀번호"
+              label={mode === "reset" ? "새 비밀번호" : "비밀번호"}
               type="password"
               autoComplete={login ? "current-password" : "new-password"}
               placeholder={login ? "" : "영문과 숫자를 섞어 8자 이상"}
@@ -221,17 +326,19 @@ export default function AuthPage() {
               error={errors.password}
             />
           )}
+          {(mode === "signup" || (mode === "reset" && sent)) && (
+            <Field
+              id="confirm"
+              label="비밀번호 확인"
+              type="password"
+              autoComplete="new-password"
+              value={f.confirm}
+              onChange={set("confirm")}
+              error={errors.confirm}
+            />
+          )}
           {mode === "signup" && (
             <>
-              <Field
-                id="confirm"
-                label="비밀번호 확인"
-                type="password"
-                autoComplete="new-password"
-                value={f.confirm}
-                onChange={set("confirm")}
-                error={errors.confirm}
-              />
               <label className="auth-agree">
                 <input
                   type="checkbox"
@@ -264,7 +371,7 @@ export default function AuthPage() {
                 login: "로그인",
                 signup: "가입하고 시작하기",
                 "find-id": "아이디 찾기",
-                reset: "재설정 링크 받기",
+                reset: sent ? "비밀번호 변경하기" : "인증번호 받기",
               }[mode]
             }
             <ArrowRight size={16} />

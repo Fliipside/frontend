@@ -1,5 +1,7 @@
 export type User = { name: string; email: string; company: string };
 export type SignupForm = User & {
+  // The 6-digit number mailed to prove the email (signup) or to allow a new password (reset).
+  code: string;
   password: string;
   confirm: string;
   agree: boolean;
@@ -25,6 +27,13 @@ export function signupErrors(f: SignupForm) {
   if (!f.name.trim()) errors.name = "이름을 입력해주세요.";
   if (!f.company.trim()) errors.company = "회사 또는 팀 이름을 입력해주세요.";
   if (!emailOk(f.email)) errors.email = "이메일 형식을 확인해주세요.";
+  if (!f.agree)
+    errors.agree = "개인정보 수집·이용에 동의해야 가입할 수 있어요.";
+  return { ...errors, ...passwordErrors(f) };
+}
+// The same rule for a first password (signup) and a new one (reset).
+function passwordErrors(f: SignupForm) {
+  const errors: Errors<SignupForm> = {};
   if (
     f.password.length < 8 ||
     !/[A-Za-z]/.test(f.password) ||
@@ -32,10 +41,10 @@ export function signupErrors(f: SignupForm) {
   )
     errors.password = "영문과 숫자를 섞어 8자 이상으로 만들어주세요.";
   if (f.confirm !== f.password) errors.confirm = "비밀번호가 서로 달라요.";
-  if (!f.agree)
-    errors.agree = "개인정보 수집·이용에 동의해야 가입할 수 있어요.";
   return errors;
 }
+export const codeError = (code: string) =>
+  /^\d{6}$/.test(code.trim()) ? "" : "메일로 받은 숫자 6자리를 입력해주세요.";
 
 export function findIdErrors(name: string, company: string) {
   const errors: Errors<{ name: string; company: string }> = {};
@@ -44,10 +53,13 @@ export function findIdErrors(name: string, company: string) {
     errors.company = "가입할 때 적은 회사 또는 팀 이름을 입력해주세요.";
   return errors;
 }
-export function resetErrors(email: string) {
-  const errors: Errors<{ email: string }> = {};
-  if (!emailOk(email)) errors.email = "이메일 형식을 확인해주세요.";
-  return errors;
+// Before the code is sent only the email is checked; after that, the code and the new password too.
+export function resetErrors(f: SignupForm, sent: boolean) {
+  const errors: Errors<SignupForm> = {};
+  if (!emailOk(f.email)) errors.email = "이메일 형식을 확인해주세요.";
+  if (!sent) return errors;
+  if (codeError(f.code)) errors.code = codeError(f.code);
+  return { ...errors, ...passwordErrors(f) };
 }
 
 // Every backend answer, success or failure, has this shape; `message` is Korean and safe to show.
@@ -110,17 +122,44 @@ export async function logIn(
     company: me.data.company ?? "",
   };
 }
-// Resolves "" when the account was created, or the message to show when it failed.
+// Resolves null when the account was created, or the failure: the page shows `message`, and
+// `code` "EMAIL_NOT_VERIFIED" tells it the 30-minute verification ran out and must be redone.
 // It does not sign in: the user logs in with the new account on the login screen.
-export async function signUp(form: SignupForm): Promise<string> {
+export async function signUp(form: SignupForm) {
   const signup = await call<ApiUser>("/auth/signup", {
     email: form.email.trim(),
     password: form.password,
     nickname: form.name.trim(),
     company: form.company.trim(),
   });
-  return signup.success ? "" : signup.message;
+  return signup.success ? null : signup;
 }
+// The four mail-code calls resolve "" on success, or the message to show when it failed.
+const said = async (reply: Promise<Reply<unknown>>) => {
+  const r = await reply;
+  return r.success ? "" : r.message;
+};
+// Signup: mail a code to the address, then prove it. Only a proven address can sign up.
+export const requestEmailCode = (email: string) =>
+  said(call("/auth/email-verification/request", { email: email.trim() }));
+export const confirmEmailCode = (email: string, code: string) =>
+  said(
+    call("/auth/email-verification/confirm", {
+      email: email.trim(),
+      code: code.trim(),
+    }),
+  );
+// Reset: the server answers the same whether or not the address has an account, so nobody can probe for members.
+export const requestPasswordReset = (email: string) =>
+  said(call("/auth/password-reset/request", { email: email.trim() }));
+export const resetPassword = (f: SignupForm) =>
+  said(
+    call("/auth/password-reset/confirm", {
+      email: f.email.trim(),
+      code: f.code.trim(),
+      new_password: f.password,
+    }),
+  );
 // True only when the server rejects the saved token (expired, or the account was deactivated).
 // A demo session has no token, and a network failure is not a rejection, so both stay signed in.
 export async function sessionRejected() {
@@ -131,12 +170,9 @@ export async function sessionRejected() {
     !me.success && (me.code === "UNAUTHORIZED" || me.code === "INACTIVE_USER")
   );
 }
-// Resolve the message to show: the masked email for findId, the "link sent" notice for reset.
+// shortcut: the backend has no find-ID API yet; connect it here to resolve the masked email.
 export async function findId(_name: string, _company: string): Promise<string> {
   return "아이디 찾기는 서버 연결 후 열려요. 지금은 데모 계정으로 둘러보세요.";
-}
-export async function requestPasswordReset(_email: string): Promise<string> {
-  return "비밀번호 재설정은 서버 연결 후 열려요. 지금은 데모 계정으로 둘러보세요.";
 }
 
 const read = <T>(key: string, fallback: T): T => {
