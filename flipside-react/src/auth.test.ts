@@ -1,10 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  confirmEmailCode,
   findIdErrors,
   logIn,
   loginErrors,
+  requestEmailCode,
+  requestPasswordReset,
   resetErrors,
+  resetPassword,
   saveSession,
   sessionRejected,
   signUp,
@@ -15,6 +19,7 @@ const valid = {
   name: "김경진",
   company: "Flipside",
   email: "kj@flipside.app",
+  code: "123456",
   password: "flip2026",
   confirm: "flip2026",
   agree: true,
@@ -49,14 +54,23 @@ test("login needs a valid email and a password", () => {
     "password",
   ]);
 });
-test("finding an ID needs a name and a company; a reset needs a valid email", () => {
+test("finding an ID needs a name and a company", () => {
   assert.deepEqual(findIdErrors("김경진", "Flipside"), {});
   assert.deepEqual(Object.keys(findIdErrors(" ", "")).sort(), [
     "company",
     "name",
   ]);
-  assert.deepEqual(resetErrors("kj@flipside.app"), {});
-  assert.ok(resetErrors("kj@flipside").email);
+});
+test("a reset checks only the email first, then the code and the new password", () => {
+  const weak = { ...valid, code: "12a", password: "abcdefgh", confirm: "x" };
+  assert.deepEqual(resetErrors(weak, false), {});
+  assert.ok(resetErrors({ ...weak, email: "kj@flipside" }, false).email);
+  assert.deepEqual(Object.keys(resetErrors(weak, true)).sort(), [
+    "code",
+    "confirm",
+    "password",
+  ]);
+  assert.deepEqual(resetErrors(valid, true), {});
 });
 
 // The backend is replaced by a fake fetch that records what the app sent.
@@ -87,7 +101,7 @@ test("signup sends the name as nickname with the company, and does not sign in",
   const sent = fakeBackend({ "/auth/signup": me });
   assert.equal(
     await signUp({ ...valid, name: " 김경진 ", company: " Flipside " }),
-    "",
+    null,
   );
   assert.deepEqual(sent, [
     {
@@ -109,7 +123,42 @@ test("signup sends the name as nickname with the company, and does not sign in",
       data: null,
     },
   });
-  assert.equal(await signUp(valid), "이미 사용 중인 이메일입니다.");
+  const failed = await signUp(valid);
+  assert.equal(failed?.code, "EMAIL_ALREADY_EXISTS");
+  assert.equal(failed?.message, "이미 사용 중인 이메일입니다.");
+});
+test("mail codes go to the verification and reset APIs, and failures show the server's message", async () => {
+  const sent = fakeBackend({
+    "/auth/email-verification/request": ok({ expires_in: 600, resend_after: 60 }),
+    "/auth/email-verification/confirm": ok({ email: valid.email, expires_in: 1800 }),
+    "/auth/password-reset/request": ok({ expires_in: 600, resend_after: 60 }),
+    "/auth/password-reset/confirm": ok(null),
+  });
+  assert.equal(await requestEmailCode(" kj@flipside.app "), "");
+  assert.equal(await confirmEmailCode("kj@flipside.app", " 123456 "), "");
+  assert.equal(await requestPasswordReset("kj@flipside.app"), "");
+  assert.equal(await resetPassword(valid), "");
+  assert.deepEqual(
+    sent.map((s) => s.body),
+    [
+      { email: "kj@flipside.app" },
+      { email: "kj@flipside.app", code: "123456" },
+      { email: "kj@flipside.app" },
+      { email: "kj@flipside.app", code: "123456", new_password: "flip2026" },
+    ],
+  );
+  fakeBackend({
+    "/auth/email-verification/confirm": {
+      success: false,
+      code: "INVALID_EMAIL_CODE",
+      message: "인증번호가 올바르지 않거나 만료되었습니다.",
+      data: null,
+    },
+  });
+  assert.equal(
+    await confirmEmailCode("kj@flipside.app", "000000"),
+    "인증번호가 올바르지 않거나 만료되었습니다.",
+  );
 });
 test("login fetches the name and company with the new token", async () => {
   const sent = fakeBackend({ "/auth/login": token, "/auth/me": me });
